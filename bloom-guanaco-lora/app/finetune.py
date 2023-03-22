@@ -1,16 +1,16 @@
 import os
 import sys
 
+import bitsandbytes as bnb
 import torch
 import torch.nn as nn
-import bitsandbytes as bnb
-from datasets import load_dataset
 import transformers
-
-assert (
-    "LlamaTokenizer" in transformers._import_structure["models.llama"]
-), "LLaMA is now in HuggingFace's main branch.\nPlease reinstall it: pip uninstall transformers && pip install git+https://github.com/huggingface/transformers.git"
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from datasets import load_dataset
+from transformers import (
+    AutoTokenizer,
+    AutoConfig,
+    AutoModelForCausalLM,
+)
 from peft import (
     prepare_model_for_int8_training,
     LoraConfig,
@@ -19,23 +19,24 @@ from peft import (
 )
 
 
-# optimized for RTX 4090. for larger GPUs, increase some of these?
-MICRO_BATCH_SIZE = 4  # this could actually be 5 but i like powers of 2
-BATCH_SIZE = 128
-GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
-EPOCHS = 3  # we don't always need 3 tbh
-LEARNING_RATE = 3e-4  # the Karpathy constant
-CUTOFF_LEN = 256  # 256 accounts for about 96% of the data
-LORA_R = 8
-LORA_ALPHA = 16
-LORA_DROPOUT = 0.05
-VAL_SET_SIZE = 2000
-TARGET_MODULES = [
-    "q_proj",
-    "v_proj",
-]
-DATA_PATH = "alpaca_data_cleaned.json"
-OUTPUT_DIR = "lora-alpaca"
+class Param:
+    # optimized for RTX 4090. for larger GPUs, increase some of these?
+    MICRO_BATCH_SIZE = 4  # this could actually be 5 but i like powers of 2
+    BATCH_SIZE = 128
+    GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
+    EPOCHS = 3  # we don't always need 3 tbh
+    LEARNING_RATE = 3e-4  # the Karpathy constant
+    CUTOFF_LEN = 256  # 256 accounts for about 96% of the data
+    LORA_R = 8
+    LORA_ALPHA = 16
+    LORA_DROPOUT = 0.05
+    VAL_SET_SIZE = 2000
+    TARGET_MODULES = [
+        "q_proj",
+        "v_proj",
+    ]
+    DATA_PATH = "alpaca_data_cleaned.json"
+    OUTPUT_DIR = "lora-alpaca"
 
 device_map = "auto"
 world_size = int(os.environ.get("WORLD_SIZE", 1))
