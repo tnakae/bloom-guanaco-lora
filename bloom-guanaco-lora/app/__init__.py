@@ -1,5 +1,5 @@
 from .config import ModelConfig
-from .utils import PromptGenerator
+from .prompt import PromptGenerator
 
 __all__ = [
     "ModelConfig",

@@ -21,7 +21,7 @@ from peft import (
 )
 
 from .config import ModelConfig
-from .utils import PromptGenerator
+from .prompt import PromptGenerator
 
 
 class BloomLoRa:
