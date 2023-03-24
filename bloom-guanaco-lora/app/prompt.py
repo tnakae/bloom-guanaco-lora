@@ -4,15 +4,13 @@ from transformers import BloomTokenizerFast
 
 
 class PromptGenerator:
-    def __init__(self,
-                 tokenizer: BloomTokenizerFast,
-                 cutoff_len: int):
+    def __init__(self, tokenizer: BloomTokenizerFast, cutoff_len: int):
         self.tokenizer = tokenizer
         self.cutoff_len = cutoff_len
 
-    def generate(self,
-                 data_point: Dict[str, str],
-                 training: bool = True) -> Dict[str, Any]:
+    def generate(
+        self, data_point: Dict[str, str], training: bool = True
+    ) -> Dict[str, Any]:
         # This function masks out the labels for the input,
         # so that our loss is computed only on the response.
         user_prompt = (
@@ -26,7 +24,8 @@ class PromptGenerator:
                 f"{data_point['input']}\n\n"
                 "### Response:"
             )
-            if data_point["input"] else (
+            if data_point["input"]
+            else (
                 "Below is an instruction that describes a task. "
                 "Write a response that appropriately completes the request.\n\n"
                 "### Instruction:\n"
@@ -62,11 +61,10 @@ class PromptGenerator:
             }
         else:
             inputs = self.tokenizer(user_prompt, return_tensors="pt")
-            return {
-                "input_ids": inputs["input_ids"]
-            }
+            return {"input_ids": inputs["input_ids"]}
 
     def get_generate_method(self) -> Callable[[Dict[str, str]], Dict[str, Any]]:
-        def generator_method(data_point):
+        def generator_method(data_point: Dict[str, str]) -> Dict[str, Any]:
             return self.generate(data_point)
+
         return generator_method

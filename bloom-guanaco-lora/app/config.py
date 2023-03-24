@@ -25,7 +25,7 @@ class LLMConfig(BaseModel):
 
     @property
     def gradient_accumulation_steps(self) -> int:
-        res = (self.batch_size // self.micro_batch_size)
+        res = self.batch_size // self.micro_batch_size
         return res
 
 
