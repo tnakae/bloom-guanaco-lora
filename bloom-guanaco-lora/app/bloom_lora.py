@@ -1,6 +1,5 @@
-import os
 import sys
-from typing import Dict, Union
+from typing import Dict, Optional
 
 import bitsandbytes as bnb  # noqa
 import torch
@@ -12,6 +11,7 @@ from datasets import (
 from transformers import (
     BloomTokenizerFast,
     BloomForCausalLM,
+    GenerationConfig,
 )
 from peft import (
     prepare_model_for_int8_training,
@@ -25,20 +25,20 @@ from .prompt import PromptGenerator
 
 
 class BloomLoRa:
-    def __init__(self, config: ModelConfig):
-        device_map: Union[str, Dict[str, int]] = "auto"
-        world_size = int(os.environ.get("WORLD_SIZE", 1))
+    def __init__(self, config: ModelConfig,
+                 training: bool = True):
+        device_map: str = "auto"
 
         self.config = config
-        self.config.llm.world_size = world_size
-        self.ddp = world_size != 1
-
-        if self.ddp:
-            device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)}
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
 
         self.model = BloomForCausalLM.from_pretrained(
             config.training.model_name,
-            load_in_8bit=config.training.load_in_8bit,
+            load_in_8bit=True,
+            torch_dtype=torch.float16,
             device_map=device_map,
         )
         self.tokenizer = BloomTokenizerFast.from_pretrained(
@@ -46,18 +46,26 @@ class BloomLoRa:
             add_eos_token=True
         )
 
-        self.model = prepare_model_for_int8_training(self.model)
-        self.model = get_peft_model(self.model,
-                                    LoraConfig(**config.lora.dict()))
+        if training:
+            self.model = prepare_model_for_int8_training(self.model)
+            self.model = get_peft_model(self.model,
+                                        LoraConfig(**config.lora.dict()))
 
-        # unk. we want this to be different from the eos token
-        self.tokenizer.pad_token_id = 0
+            # unk. we want this to be different from the eos token
+            self.tokenizer.pad_token_id = 0
+            self.data: DatasetDict = load_dataset("json",
+                                                  data_files=config.file_path.data_path)
 
-        self.data: DatasetDict = load_dataset("json",
-                                              data_files=config.file_path.data_path)
+            self.prompt_generator = PromptGenerator(self.tokenizer,
+                                                    config.llm.cutoff_len)
+        else:
+            self.model = get_peft_model(self.model,
+                                        config.file_path.model_dir,
+                                        torch_dtype=torch.float16)
 
-        self.prompt_generator = PromptGenerator(self.tokenizer,
-                                                config.llm.cutoff_len)
+    @classmethod
+    def from_finetuned(cls, config: ModelConfig) -> "BloomLoRa":
+        return BloomLoRa(config, training=False)
 
     def fine_tuning(self):
         generate_prompt = self.prompt_generator.get_generate_method()
@@ -87,7 +95,7 @@ class BloomLoRa:
                 save_strategy="steps",
                 eval_steps=200 if self.config.training.val_set_size > 0 else None,
                 save_steps=200,
-                output_dir=self.config.file_path.output_dir,
+                output_dir=self.config.file_path.model_dir,
                 save_total_limit=3,
                 load_best_model_at_end=True if self.config.training.val_set_size > 0 else False,
                 ddp_find_unused_parameters=False if self.ddp else None,
@@ -102,8 +110,29 @@ class BloomLoRa:
         ).__get__(self.model, type(self.model))
 
         if torch.__version__ >= "2" and sys.platform != 'win32':
-            model = torch.compile(self.model)
+            self.model = torch.compile(self.model)
 
         trainer.train()
-        model.save_pretrained(self.config.file_path.output_dir)
+        self.model.save_pretrained(self.config.file_path.model_dir)
         print("\n If there's a warning about missing keys above, please disregard :)")
+
+    def evaluate(self,
+                 instruction: str,
+                 input: Optional[str] = None) -> str:
+        prompt_params: Dict[str, str] = {"instruction": instruction}
+        if input is not None:
+            prompt_params["input"] = input
+        prompt = self.prompt_generator.generate(prompt_params)
+
+        generation_config = GenerationConfig(**self.config.generation.dict())
+        with torch.no_grad():
+            generation_output = self.model.generate(
+                input_ids=prompt["input_ids"].to(self.device),
+                generation_config=generation_config,
+                return_dict_in_generate=True,
+                output_scores=True,
+                max_new_tokens=self.config.generation.max_new_tokens,
+            )
+        s = generation_output.sequences[0]
+        output: str = self.tokenizer.decode(s)
+        return output.split("### Response:")[1].strip()

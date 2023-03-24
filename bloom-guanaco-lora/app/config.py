@@ -20,30 +20,36 @@ class LLMConfig(BaseModel):
     micro_batch_size: int = 4
     batch_size: int = 128
     epochs: int = 3
-    world_size: int = 1
     learning_rate: float = 3e-4
     cutoff_len = 256
 
     @property
     def gradient_accumulation_steps(self) -> int:
         res = (self.batch_size // self.micro_batch_size)
-        res //= self.world_size
         return res
 
 
 class TrainingConfig(BaseModel):
     model_name: str = "bigscience/bloom-7b1"
-    load_in_8bit: bool = True
     val_set_size: int = 2000
 
 
 class FilePathConfig(BaseModel):
     data_path: Path
-    output_dir: Path
+    model_dir: Path
+
+
+class GenerationParamConfig(BaseModel):
+    temperature: float = 0.1
+    top_p: float = 0.75
+    top_k: int = 40
+    num_beams: int = 4
+    max_new_tokens: int = 128
 
 
 class ModelConfig(BaseModel):
     lora: LoRaParamConfig
     llm: LLMConfig
     training: TrainingConfig
+    generation: GenerationParamConfig
     file_path: FilePathConfig
