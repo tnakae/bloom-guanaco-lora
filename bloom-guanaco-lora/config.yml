@@ -1,0 +1,31 @@
+lora:
+  r: 8
+  lora_alpha: 16
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "v_proj"
+  bias: "none"
+  task_type: "CAUSAL_LM"
+
+llm:
+  micro_batch_size: 4
+  batch_size: 128
+  epochs: 3
+  learning_rate: 0.0003
+  cutoff_len: 256
+
+training:
+  model_name: "bigscience/bloom-7b1"
+  val_set_size: 2000
+
+file_path:
+  data_path: "./data/guanaco_chat_all-utf8.json.bz2"
+  model_dir: "./model/"
+
+geneeration:
+  temperature: 0.1
+  top_p: 0.75
+  top_k: 40
+  num_beams: 4
+  max_new_tokens: 128
