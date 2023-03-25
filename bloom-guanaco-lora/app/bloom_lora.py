@@ -44,7 +44,7 @@ class BloomLoRa:
             # unk. we want this to be different from the eos token
             self.tokenizer.pad_token_id = 0
             self.data: DatasetDict = load_dataset(
-                "json", data_files=config.file_path.data_path
+                "json", data_files=[config.file_path.data_path]
             )
 
             self.prompt_generator = PromptGenerator(
