@@ -22,7 +22,7 @@ class PromptGenerator:
                 f"{data_point['instruction']}\n\n"
                 "### Input:\n"
                 f"{data_point['input']}\n\n"
-                "### Response:"
+                "### Response:\n"
             )
             if data_point["input"]
             else (
@@ -30,7 +30,7 @@ class PromptGenerator:
                 "Write a response that appropriately completes the request.\n\n"
                 "### Instruction:\n"
                 f"{data_point['instruction']}\n\n"
-                "### Response:"
+                "### Response:\n"
             )
         )
 
