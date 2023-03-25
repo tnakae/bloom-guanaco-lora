@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import List
 
 from pydantic import BaseModel
@@ -35,8 +34,8 @@ class TrainingConfig(BaseModel):
 
 
 class FilePathConfig(BaseModel):
-    data_path: Path
-    model_dir: Path
+    data_path: str
+    model_dir: str
 
 
 class GenerationParamConfig(BaseModel):
