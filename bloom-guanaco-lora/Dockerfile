@@ -7,8 +7,7 @@ RUN apt-get update \
 
 WORKDIR ${PROGRAM_DIR}/
 
-COPY pyproject.toml ${PROGRAM_DIR}/
-COPY poetry.lock ${PROGRAM_DIR}/
+COPY pyproject.toml poetry.lock train train.py config.yml ${PROGRAM_DIR}/
 RUN pip install poetry==1.4.1 \
     && poetry config virtualenvs.in-project true \
     && poetry install

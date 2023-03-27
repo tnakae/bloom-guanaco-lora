@@ -1,6 +1,6 @@
 version: "3"
 services:
-  bizai-prd-ss-api:
+  bloom-guanaco-lora:
     build:
       context: .
       dockerfile: Dockerfile
