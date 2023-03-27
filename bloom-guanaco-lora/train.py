@@ -5,11 +5,11 @@ import yaml
 from app import BloomLoRa, ModelConfig
 
 
-def main(model_output_path: str = "/opt/ml/model/") -> int:
+def main(model_output_dir: str = "/opt/ml/model/") -> int:
     with open("./config.yml", "r") as fp:
         model_config = ModelConfig(**yaml.safe_load(fp))
 
-    model_config.file_path.output_dir = "/opt/ml/"
+    model_config.file_path.model_dir = model_output_dir
 
     model = BloomLoRa(model_config)
     model.fine_tuning()
