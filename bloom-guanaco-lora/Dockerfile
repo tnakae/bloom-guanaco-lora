@@ -11,7 +11,6 @@ COPY pyproject.toml ${PROGRAM_DIR}/
 COPY poetry.lock ${PROGRAM_DIR}/
 RUN pip install poetry==1.4.1 \
     && poetry config virtualenvs.in-project true \
-    && poetry update \
     && poetry install
 
 COPY app ${PROGRAM_DIR}/
