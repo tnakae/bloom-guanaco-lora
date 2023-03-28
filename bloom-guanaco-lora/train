@@ -1,1 +1,2 @@
+#!/bin/bash
 poetry run python train.py --model-output-dir /opt/ml/model/

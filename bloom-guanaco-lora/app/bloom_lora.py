@@ -33,9 +33,7 @@ class BloomLoRa:
             torch_dtype=torch.float16,
             device_map=device_map,
         )
-        self.tokenizer = BloomTokenizerFast.from_pretrained(
-            config.training.model_name, add_eos_token=True
-        )
+        self.tokenizer = BloomTokenizerFast.from_pretrained(config.training.model_name)
 
         if training:
             self.model = prepare_model_for_int8_training(self.model)
@@ -83,6 +81,7 @@ class BloomLoRa:
                 learning_rate=self.config.llm.learning_rate,
                 fp16=True,
                 logging_steps=20,
+                optim="adamw_torch",
                 evaluation_strategy="steps"
                 if self.config.training.val_set_size > 0
                 else "no",
