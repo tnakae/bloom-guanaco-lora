@@ -7,12 +7,13 @@ RUN apt-get update \
 
 WORKDIR ${PROGRAM_DIR}/
 
-COPY pyproject.toml poetry.lock train train.py config.yml ${PROGRAM_DIR}/
+COPY pyproject.toml poetry.lock ${PROGRAM_DIR}/
 RUN pip install poetry==1.4.1 \
     && poetry config virtualenvs.in-project true \
     && poetry install
 
-COPY app ${PROGRAM_DIR}/
+COPY train train.py config.yml ${PROGRAM_DIR}/
+COPY app/ ${PROGRAM_DIR}/app/
 
 ENV PATH=${PROGRAM_DIR}:${PYTHON_HOME}/bin:$PATH
 
