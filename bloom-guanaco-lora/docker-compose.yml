@@ -1,0 +1,7 @@
+version: "3"
+services:
+  bloom-guanaco-lora:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bloom-guanaco-lora:0.0.1

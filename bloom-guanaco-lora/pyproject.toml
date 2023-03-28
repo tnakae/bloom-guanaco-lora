@@ -13,6 +13,7 @@ bitsandbytes = "^0.37.1"
 peft = "^0.2.0"
 gradio = "^3.23.0"
 appdirs = "^1.4.4"
+typer = "^0.7.0"
 
 [tool.poetry.dev-dependencies]
 
