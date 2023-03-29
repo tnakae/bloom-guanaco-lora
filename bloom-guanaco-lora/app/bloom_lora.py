@@ -36,7 +36,8 @@ class BloomLoRa:
         self.tokenizer = BloomTokenizerFast.from_pretrained(config.training.model_name)
 
         if training:
-            self.model = prepare_model_for_int8_training(self.model)
+            if config.llm.load_in_8bit:
+                self.model = prepare_model_for_int8_training(self.model)
             self.model = get_peft_model(self.model, LoraConfig(**config.lora.dict()))
 
             # unk. we want this to be different from the eos token
@@ -88,6 +89,7 @@ class BloomLoRa:
                 num_train_epochs=self.config.llm.epochs,
                 learning_rate=self.config.llm.learning_rate,
                 logging_steps=20,
+                fp16=True,
                 optim="adamw_torch",
                 evaluation_strategy="steps"
                 if self.config.training.val_set_size > 0
