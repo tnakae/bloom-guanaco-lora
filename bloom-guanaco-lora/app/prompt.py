@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from transformers import BloomTokenizerFast
 
@@ -35,33 +35,27 @@ class PromptGenerator:
         )
 
         if training:
-            len_user_prompt_tokens = (
-                len(
-                    self.tokenizer(
-                        user_prompt,
-                        truncation=True,
-                        max_length=self.cutoff_len + 1,
-                    )["input_ids"]
-                )
-                - 1
-            )  # no eos token
-
-            full_tokens = self.tokenizer(
+            result: Dict[str, List[Any]] = self.tokenizer(
                 user_prompt + data_point["output"],
                 truncation=True,
-                max_length=self.cutoff_len + 1,
-                padding="max_length",
-            )["input_ids"][:-1]
+                max_length=self.cutoff_len,
+                padding=False,
+                return_tensors=None,
+            )
 
-            return {
-                "input_ids": full_tokens,
-                "labels": [-100] * len_user_prompt_tokens
-                + full_tokens[len_user_prompt_tokens:],
-                "attention_mask": [1] * (len(full_tokens)),
-            }
+            if (
+                result["input_ids"][-1] != self.tokenizer.eos_token_id
+                and len(result["input_ids"]) < self.cutoff_len
+            ):
+                result["input_ids"].append(self.tokenizer.eos_token_id)
+                result["attention_mask"].append(1)
+
+            result["labels"] = result["input_ids"].copy()
+
+            return result
         else:
-            inputs = self.tokenizer(user_prompt, return_tensors="pt")
-            return {"input_ids": inputs["input_ids"]}
+            output: Dict[str, Any] = self.tokenizer(user_prompt, return_tensors="pt")
+            return {"input_ids": output["input_ids"]}
 
     def get_generate_method(self) -> Callable[[Dict[str, str]], Dict[str, Any]]:
         def generator_method(data_point: Dict[str, str]) -> Dict[str, Any]:

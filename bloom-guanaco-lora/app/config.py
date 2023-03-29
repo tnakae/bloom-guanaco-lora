@@ -21,6 +21,7 @@ class LLMConfig(BaseModel):
     epochs: int = 3
     learning_rate: float = 3e-4
     cutoff_len = 256
+    load_in_8bit: bool = True
 
     @property
     def gradient_accumulation_steps(self) -> int:

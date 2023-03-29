@@ -29,13 +29,11 @@ class BloomLoRa:
 
         self.model = BloomForCausalLM.from_pretrained(
             config.training.model_name,
-            load_in_8bit=True,
+            load_in_8bit=config.llm.load_in_8bit,
             torch_dtype=torch.float16,
             device_map=device_map,
         )
-        self.tokenizer = BloomTokenizerFast.from_pretrained(
-            config.training.model_name, add_eos_token=True
-        )
+        self.tokenizer = BloomTokenizerFast.from_pretrained(config.training.model_name)
 
         if training:
             self.model = prepare_model_for_int8_training(self.model)
@@ -55,6 +53,9 @@ class BloomLoRa:
                 self.model, config.file_path.model_dir, torch_dtype=torch.float16
             )
 
+        if not self.config.llm.load_in_8bit:
+            self.model.half()
+
     @classmethod
     def from_finetuned(cls, config: ModelConfig) -> "BloomLoRa":
         return BloomLoRa(config, training=False)
@@ -71,6 +72,11 @@ class BloomLoRa:
             train_data = self.data["train"].shuffle().map(generate_prompt)
             val_data = None
 
+        if torch.cuda.device_count() > 1:
+            # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
+            self.model.is_parallelizable = True
+            self.model.model_parallel = True
+
         trainer = transformers.Trainer(
             model=self.model,
             train_dataset=train_data,
@@ -81,8 +87,8 @@ class BloomLoRa:
                 warmup_steps=100,
                 num_train_epochs=self.config.llm.epochs,
                 learning_rate=self.config.llm.learning_rate,
-                fp16=True,
                 logging_steps=20,
+                optim="adamw_torch",
                 evaluation_strategy="steps"
                 if self.config.training.val_set_size > 0
                 else "no",
@@ -95,8 +101,11 @@ class BloomLoRa:
                 if self.config.training.val_set_size > 0
                 else False,
             ),
-            data_collator=transformers.DataCollatorForLanguageModeling(
-                self.tokenizer, mlm=False
+            data_collator=transformers.DataCollatorForSeq2Seq(
+                self.tokenizer,
+                pad_to_multiple_of=8,
+                return_tensors="pt",
+                padding=True,
             ),
         )
         self.model.config.use_cache = False
