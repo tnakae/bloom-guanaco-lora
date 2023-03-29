@@ -41,7 +41,7 @@ class PromptGenerator:
                 max_length=self.cutoff_len,
                 padding=False,
                 return_tensors=None,
-            )["input_ids"][:-1]
+            )
 
             if (
                 result["input_ids"][-1] != self.tokenizer.eos_token_id
