@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.0.1-base-ubuntu22.04
+FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
 
 ARG PROGRAM_DIR="/opt/ml/code"
 
