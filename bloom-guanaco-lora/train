@@ -1,3 +1,4 @@
 #!/bin/bash
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
 mkdir -p /opt/ml/model/
 poetry run python train.py --model-output-dir /opt/ml/model/
