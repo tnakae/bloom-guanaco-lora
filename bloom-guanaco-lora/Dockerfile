@@ -15,7 +15,7 @@ RUN pip install poetry==1.4.1 \
 
 COPY train train.py config.yml ${PROGRAM_DIR}/
 COPY app/ ${PROGRAM_DIR}/app/
-COPY data/ ${PRGORAM_DIR}/data/
+COPY data/ ${PROGRAM_DIR}/data/
 
 ENV PATH=${PROGRAM_DIR}:$PATH
 
