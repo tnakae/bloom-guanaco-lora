@@ -37,7 +37,9 @@ class BloomLoRa:
 
         if training:
             if config.llm.load_in_8bit:
-                self.model = prepare_model_for_int8_training(self.model)
+                self.model = prepare_model_for_int8_training(
+                    self.model, layer_norm_names=[]
+                )
             self.model = get_peft_model(self.model, LoraConfig(**config.lora.dict()))
 
             # unk. we want this to be different from the eos token
