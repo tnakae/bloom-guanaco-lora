@@ -1,7 +1,6 @@
 import sys
 from typing import Dict, Optional
 
-import bitsandbytes as bnb  # noqa
 import torch
 import transformers
 from datasets import DatasetDict, load_dataset
@@ -36,11 +35,15 @@ class BloomLoRa:
         self.tokenizer = BloomTokenizerFast.from_pretrained(config.training.model_name)
 
         if training:
-            if config.llm.load_in_8bit:
-                self.model = prepare_model_for_int8_training(
-                    self.model, layer_norm_names=[]
-                )
+            for param in self.model.parameters():
+                param.requires_grad = False
+
+            self.model.gradient_checkpointing_enable()  # reduce number of stored activations
+            self.model.enable_input_require_grads()
+
             self.model = get_peft_model(self.model, LoraConfig(**config.lora.dict()))
+            if not config.llm.load_in_8bit:
+                self.model = self.model.half()
 
             # unk. we want this to be different from the eos token
             self.tokenizer.pad_token_id = 0
@@ -52,12 +55,7 @@ class BloomLoRa:
                 self.tokenizer, config.llm.cutoff_len
             )
         else:
-            self.model = get_peft_model(
-                self.model, config.file_path.model_dir, torch_dtype=torch.float16
-            )
-
-        if not self.config.llm.load_in_8bit:
-            self.model.half()
+            self.model = get_peft_model(self.model, config.file_path.model_dir)
 
     @classmethod
     def from_finetuned(cls, config: ModelConfig) -> "BloomLoRa":
@@ -91,7 +89,6 @@ class BloomLoRa:
                 num_train_epochs=self.config.llm.epochs,
                 learning_rate=self.config.llm.learning_rate,
                 logging_steps=20,
-                fp16=True,
                 optim="adamw_torch",
                 evaluation_strategy="steps"
                 if self.config.training.val_set_size > 0
