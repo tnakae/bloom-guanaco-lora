@@ -36,7 +36,7 @@ class TrainingConfig(BaseModel):
 
 class FilePathConfig(BaseModel):
     data_path: str
-    model_dir: str
+    model_dir: str = ""
 
 
 class GenerationParamConfig(BaseModel):

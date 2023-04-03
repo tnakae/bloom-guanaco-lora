@@ -6,6 +6,7 @@ import transformers
 from datasets import DatasetDict, load_dataset
 from peft import (
     LoraConfig,
+    PeftModel,
     get_peft_model,
     get_peft_model_state_dict,
     prepare_model_for_int8_training,
@@ -33,6 +34,9 @@ class BloomLoRa:
             device_map=device_map,
         )
         self.tokenizer = BloomTokenizerFast.from_pretrained(config.training.model_name)
+        self.tokenizer.pad_token_id = 0
+
+        self.prompt_generator = PromptGenerator(self.tokenizer, config.llm.cutoff_len)
 
         if training:
             for param in self.model.parameters():
@@ -46,16 +50,15 @@ class BloomLoRa:
                 self.model = self.model.half()
 
             # unk. we want this to be different from the eos token
-            self.tokenizer.pad_token_id = 0
             self.data: DatasetDict = load_dataset(
                 "json", data_files=[config.file_path.data_path]
             )
 
-            self.prompt_generator = PromptGenerator(
-                self.tokenizer, config.llm.cutoff_len
-            )
         else:
-            self.model = get_peft_model(self.model, config.file_path.model_dir)
+            if config.file_path.model_dir:
+                self.model = PeftModel.from_pretrained(
+                    self.model, config.file_path.model_dir
+                )
 
     @classmethod
     def from_finetuned(cls, config: ModelConfig) -> "BloomLoRa":
@@ -127,12 +130,15 @@ class BloomLoRa:
         prompt_params: Dict[str, str] = {"instruction": instruction}
         if input is not None:
             prompt_params["input"] = input
-        prompt = self.prompt_generator.generate(prompt_params)
+        prompt = self.prompt_generator.generate(prompt_params, training=False)
+        input_ids: torch.Tensor = prompt["input_ids"].to(self.device)
+        if not self.config.llm.load_in_8bit:
+            input_ids = input_ids.half()
 
         generation_config = GenerationConfig(**self.config.generation.dict())
         with torch.no_grad():
             generation_output = self.model.generate(
-                input_ids=prompt["input_ids"].to(self.device),
+                input_ids=input_ids,
                 generation_config=generation_config,
                 return_dict_in_generate=True,
                 output_scores=True,
