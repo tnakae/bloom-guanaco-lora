@@ -132,8 +132,6 @@ class BloomLoRa:
             prompt_params["input"] = input
         prompt = self.prompt_generator.generate(prompt_params, training=False)
         input_ids: torch.Tensor = prompt["input_ids"].to(self.device)
-        if not self.config.llm.load_in_8bit:
-            input_ids = input_ids.half()
 
         generation_config = GenerationConfig(**self.config.generation.dict())
         with torch.no_grad():
