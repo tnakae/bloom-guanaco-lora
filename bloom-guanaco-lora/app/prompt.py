@@ -24,7 +24,7 @@ class PromptGenerator:
                 f"{data_point['input']}\n\n"
                 "### Response:\n"
             )
-            if data_point["input"]
+            if "input" in data_point and data_point["input"]
             else (
                 "Below is an instruction that describes a task. "
                 "Write a response that appropriately completes the request.\n\n"
