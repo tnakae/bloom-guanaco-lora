@@ -44,10 +44,7 @@ class BloomLoRa:
 
             self.model.gradient_checkpointing_enable()  # reduce number of stored activations
             self.model.enable_input_require_grads()
-
             self.model = get_peft_model(self.model, LoraConfig(**config.lora.dict()))
-            if not config.llm.load_in_8bit:
-                self.model = self.model.half()
 
             # unk. we want this to be different from the eos token
             self.data: DatasetDict = load_dataset(
@@ -59,6 +56,9 @@ class BloomLoRa:
                 self.model = PeftModel.from_pretrained(
                     self.model, config.file_path.model_dir
                 )
+
+        if not config.llm.load_in_8bit:
+            self.model = self.model.half()
 
     @classmethod
     def from_finetuned(cls, config: ModelConfig) -> "BloomLoRa":
