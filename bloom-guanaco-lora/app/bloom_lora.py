@@ -4,13 +4,7 @@ from typing import Dict, Optional
 import torch
 import transformers
 from datasets import DatasetDict, load_dataset
-from peft import (
-    LoraConfig,
-    PeftModel,
-    get_peft_model,
-    get_peft_model_state_dict,
-    prepare_model_for_int8_training,
-)
+from peft import LoraConfig, PeftModel, get_peft_model, get_peft_model_state_dict
 from transformers import BloomForCausalLM, BloomTokenizerFast, GenerationConfig
 
 from .config import ModelConfig
