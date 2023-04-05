@@ -9,6 +9,7 @@ from .config import ModelConfig
 
 class Hyperparameters(BaseModel):
     base_model_name: Optional[str] = None
+    model_output_dir: Optional[str] = None
     disable_8bit: bool = False
     max_epoch: int = 3
 
@@ -21,6 +22,8 @@ class Hyperparameters(BaseModel):
         res: ModelConfig = config.copy()
         if self.base_model_name is not None:
             res.training.model_name = self.base_model_name
+        if self.model_output_dir is not None:
+            res.file_path.model_dir = self.model_output_dir
         res.llm.load_in_8bit = not self.disable_8bit
         res.llm.epochs = self.max_epoch
         return res
